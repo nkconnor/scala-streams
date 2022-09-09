@@ -20,6 +20,23 @@ object Stream {
 
 trait Stream[T] {
 
+  /** skips the first `n` items of the stream * */
+  def skip(n: Int): Stream[T] = {
+    val self = this
+    new Stream[T] {
+      var init = false;
+
+      override def next()(implicit ctx: ExecutionContext): Future[Option[T]] = {
+        if (init == false) {
+          (1 to n).foreach(_ => self.next())
+          init = true
+        }
+
+        self.next()
+      }
+    }
+  }
+
   /** Fold each item into an initial value */
   def fold[U](init: U, f: (U, T) => Future[U])(implicit
       ctx: ExecutionContext
@@ -121,6 +138,19 @@ trait Stream[T] {
             val first = self.next()
             (0 to n).foreach(_ => q.enqueue(self.next()))
             first
+        }
+      }
+    }
+  }
+
+  def map[U](f: T => U): Stream[U] = {
+    val self = this
+
+    new Stream[U] {
+      def next()(implicit ctx: ExecutionContext): Future[Option[U]] = {
+        self.next().flatMap {
+          case Some(t) => Future.successful(Some(f(t)))
+          case None    => Future.successful(None)
         }
       }
     }

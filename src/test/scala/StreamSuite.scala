@@ -89,7 +89,6 @@ class StreamSuite extends munit.FunSuite {
     assertEquals(res2, (Some(4), Some(5), Some(6)))
     assertEquals(q1.toSeq, Seq())
     assertEquals(q2.toSeq, Seq())
-
   }
 
   test("buffered runs multiple things at once") {
@@ -104,5 +103,26 @@ class StreamSuite extends munit.FunSuite {
 
     assert((System.currentTimeMillis() - start) < 210)
   }
+  
+  test("map, flatMap, actually map things") {
+    val res = await(Stream(Some(1))
+      .flatMap(i => Future.successful(i * 2))
+      .collect[List[Int]])
 
+    assertEquals(res.head, 2)
+    
+    val res2 = await(Stream(Some(1))
+      .map(i => i * 2)
+      .collect[List[Int]])
+
+    assertEquals(res2.head, 2)
+  }
+
+  test("skip some items and they never appear") {
+    val s = Seq(1,2,3)
+    assertEquals(
+      await(Stream(Seq(1,2,3,4,5,6)).skip(2).collect[Seq[Int]]),
+      Seq(3,4,5,6)
+    )
+  }
 }
