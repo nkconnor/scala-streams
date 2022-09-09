@@ -20,23 +20,6 @@ object Stream {
 
 trait Stream[T] {
 
-  /** skips the first `n` items of the stream * */
-  def skip(n: Int): Stream[T] = {
-    val self = this
-    new Stream[T] {
-      var init = false;
-
-      override def next()(implicit ctx: ExecutionContext): Future[Option[T]] = {
-        if (init == false) {
-          (1 to n).foreach(_ => self.next())
-          init = true
-        }
-
-        self.next()
-      }
-    }
-  }
-
   /** Fold each item into an initial value */
   def fold[U](init: U, f: (U, T) => Future[U])(implicit
       ctx: ExecutionContext
@@ -83,6 +66,23 @@ trait Stream[T] {
     }
 
     inner(factory.newBuilder).map(_.result())
+  }
+
+  /** skips the first `n` items of the stream * */
+  def skip(n: Int): Stream[T] = {
+    val self = this
+    new Stream[T] {
+      var init = false;
+
+      override def next()(implicit ctx: ExecutionContext): Future[Option[T]] = {
+        if (init == false) {
+          (1 to n).foreach(_ => self.next())
+          init = true
+        }
+
+        self.next()
+      }
+    }
   }
 
   def concat(other: Stream[T]): Stream[T] = {
