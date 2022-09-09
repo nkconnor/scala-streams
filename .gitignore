@@ -1,0 +1,16 @@
+*.class
+*.log
+.idea
+.vscode
+target
+/.DS_Store
+/.idea
+/.idea_modules
+/.classpath
+/.project
+/.settings
+/RUNNING_PID
+.bloop
+.bsp
+.metals
+project/metals.sbt
