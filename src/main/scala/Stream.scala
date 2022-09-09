@@ -48,7 +48,7 @@ trait Stream[T] {
 
   /** Transforms a source into a collection, returning a future representing the
     * result of that computation. The returned future will be resolved when the
-    * stream terminates.
+    * stream is exhausted.
     */
   def collect[C](implicit
       factory: Factory[T, C],
@@ -68,14 +68,14 @@ trait Stream[T] {
     inner(factory.newBuilder).map(_.result())
   }
 
-  /** skips the first `n` items of the stream * */
+  /** Skips the first `n` items of the stream * */
   def skip(n: Int): Stream[T] = {
     val self = this
     new Stream[T] {
       var init = false;
 
       override def next()(implicit ctx: ExecutionContext): Future[Option[T]] = {
-        if (init == false) {
+        if (!init) {
           (1 to n).foreach(_ => self.next())
           init = true
         }
@@ -85,6 +85,9 @@ trait Stream[T] {
     }
   }
 
+  /** Concatenates the `other` stream to this. This stream will be fully
+    * exhausted before items are pulled from `other`
+    */
   def concat(other: Stream[T]): Stream[T] = {
     val self = this
     new Stream[T] {
@@ -100,6 +103,9 @@ trait Stream[T] {
     }
   }
 
+  /** Zips items from the `other` stream with this. This stream will be
+    * exhausted when either this or `other` is.
+    */
   def zip[U](other: Stream[U]): Stream[(T, U)] = {
     val self = this
     new Stream[(T, U)] {
@@ -120,6 +126,7 @@ trait Stream[T] {
     }
   }
 
+  /** Buffers `n` items from the stream */
   def buffered(n: Int): Stream[T] = {
     val self = this
     new Stream[T] {
@@ -143,6 +150,9 @@ trait Stream[T] {
     }
   }
 
+  /** Transforms the items in the stream by applying the provided function to
+    * values when they are ready.
+    */
   def map[U](f: T => U): Stream[U] = {
     val self = this
 
@@ -156,6 +166,10 @@ trait Stream[T] {
     }
   }
 
+  /** Transforms the items in the stream by applying the provided function to
+    * values when they are ready. The stream will be able to yield whenever the
+    * function's Future is ready.
+    */
   def flatMap[U](f: T => Future[U]): Stream[U] = {
     val self = this
 
@@ -169,5 +183,8 @@ trait Stream[T] {
     }
   }
 
+  /** Retrieves a future containing the next value from the stream. `None` is
+    * contained if the stream is exhausted
+    */
   def next()(implicit ctx: ExecutionContext): Future[Option[T]]
 }
